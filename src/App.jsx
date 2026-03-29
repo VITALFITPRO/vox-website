@@ -10,6 +10,8 @@ import Pricing from './components/Pricing';
 import Footer from './components/Footer';
 import Chatbot from './components/Chatbot';
 import DownloadPortal from './components/DownloadPortal';
+import PurchaseSuccess from './components/PurchaseSuccess';
+import PurchasePending from './components/PurchasePending';
 import './App.css';
 import './components/Chatbot.css';
 
@@ -37,7 +39,9 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/descargar" element={<DownloadPortal />} />
+        <Route path="/descargar/:token" element={<DownloadPortal />} />
+        <Route path="/compra-exitosa" element={<PurchaseSuccess />} />
+        <Route path="/compra-pendiente" element={<PurchasePending />} />
       </Routes>
     </BrowserRouter>
   );
