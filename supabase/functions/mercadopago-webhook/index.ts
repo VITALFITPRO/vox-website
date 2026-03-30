@@ -33,6 +33,47 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'No payment ID' }), { status: 400 });
     }
 
+    // --- 1. VALIDACIÓN DE FIRMA CRIPTOGRÁFICA (MERCADO PAGO) ---
+    const xSignature = req.headers.get('x-signature');
+    const xRequestId = req.headers.get('x-request-id');
+    const webhookSecret = Deno.env.get('MERCADOPAGO_WEBHOOK_SECRET');
+
+    if (xSignature && xRequestId && webhookSecret) {
+      const parts = xSignature.split(',');
+      let ts = '';
+      let v1 = '';
+      parts.forEach(p => {
+        if (p.startsWith('ts=')) ts = p.substring(3);
+        if (p.startsWith('v1=')) v1 = p.substring(3);
+      });
+
+      const manifest = `id:${paymentId};request-id:${xRequestId};ts:${ts};`;
+      
+      const encoder = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(webhookSecret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['verify']
+      );
+      
+      // Convertir v1 hex a Uint8Array
+      const signatureBytes = new Uint8Array(v1.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []);
+      
+      const isValid = await crypto.subtle.verify(
+        'HMAC',
+        key,
+        signatureBytes,
+        encoder.encode(manifest)
+      );
+
+      if (!isValid) {
+        console.error('Firma de MercadoPago inválida');
+        return new Response(JSON.stringify({ error: 'Invalid signature' }), { status: 403 });
+      }
+    }
+
     const MP_ACCESS_TOKEN = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')!;
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -60,8 +101,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ received: true, status: payment.status }), { status: 200 });
     }
 
-    // Extraer datos del comprador
-    let buyerData = { email: '', name: '', phone: '' };
+    // Extraer datos del comprador y el desarrollador a pagar
+    let buyerData = { email: '', name: '', phone: '', developer_id: null };
     try {
       buyerData = JSON.parse(payment.external_reference || '{}');
     } catch {
@@ -130,10 +171,27 @@ serve(async (req) => {
       .insert({
         purchase_id: purchase.id,
         license_key: licenseKey,
+        assigned_user: buyerData.email,
+        status: 'active'
       });
 
     if (licenseError) {
       console.error('Error insertando licencia:', licenseError);
+    }
+
+    // 4.5 Suma de fondos al balance del developer en tabla developers
+    if (buyerData.developer_id && payment.transaction_amount) {
+      // Usar un RPC de incremento transaccional seguro
+      const { error: balanceError } = await supabase.rpc('increment_developer_balance', {
+        dev_id: buyerData.developer_id,
+        amount_to_add: payment.transaction_amount
+      });
+
+      if (balanceError) {
+        console.error('Error sumando fondos al developer:', balanceError);
+      } else {
+        console.log(`Fondos sumados al developer ${buyerData.developer_id}: S/.${payment.transaction_amount}`);
+      }
     }
 
     // 5. Enviar email con link de descarga (si Resend está configurado)
