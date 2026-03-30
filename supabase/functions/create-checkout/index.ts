@@ -1,3 +1,4 @@
+// @ts-nocheck
 // ============================================================
 // EDGE FUNCTION: create-checkout
 // Crea una preferencia de pago en Mercado Pago y devuelve la URL de checkout

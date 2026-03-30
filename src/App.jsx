@@ -12,6 +12,11 @@ import Chatbot from './components/Chatbot';
 import DownloadPortal from './components/DownloadPortal';
 import PurchaseSuccess from './components/PurchaseSuccess';
 import PurchasePending from './components/PurchasePending';
+import DocsLayout from './components/docs/DocsLayout';
+import DocsInstall from './components/docs/DocsInstall';
+import DocsCore from './components/docs/DocsCore';
+import DocsPrompts from './components/docs/DocsPrompts';
+import DocsMonetization from './components/docs/DocsMonetization';
 import './App.css';
 import './components/Chatbot.css';
 
@@ -42,6 +47,14 @@ function App() {
         <Route path="/descargar/:token" element={<DownloadPortal />} />
         <Route path="/compra-exitosa" element={<PurchaseSuccess />} />
         <Route path="/compra-pendiente" element={<PurchasePending />} />
+        
+        {/* Documentación */}
+        <Route path="/docs" element={<DocsLayout />}>
+          <Route index element={<DocsInstall />} />
+          <Route path="core" element={<DocsCore />} />
+          <Route path="creadores" element={<DocsMonetization />} />
+          <Route path="ia" element={<DocsPrompts />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );

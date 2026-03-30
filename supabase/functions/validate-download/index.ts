@@ -1,3 +1,4 @@
+// @ts-nocheck
 // ============================================================
 // EDGE FUNCTION: validate-download
 // Valida un token de descarga, verifica IP y genera URL firmada

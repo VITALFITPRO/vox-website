@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 const logo = '/vox-logo.png';
 
 export default function Navbar() {
@@ -13,10 +14,10 @@ export default function Navbar() {
       transition={{ duration: 0.5 }}
     >
       <div className="navbar-inner">
-        <a href="#" className="navbar-brand">
+        <Link to="/" className="navbar-brand">
           <img src={logo} alt="Vox" className="navbar-logo" />
           <span>Vox</span>
-        </a>
+        </Link>
 
         <button
           className="navbar-toggle"
@@ -27,12 +28,12 @@ export default function Navbar() {
         </button>
 
         <ul className={`navbar-links ${menuOpen ? 'active' : ''}`}>
-          <li><a href="#demo">Demo</a></li>
-          <li><a href="#features">Características</a></li>
-          <li><a href="#widgets">Widgets</a></li>
-          <li><a href="#voxpub">Directorio</a></li>
-          <li><a href="#docs" className="nav-btn-outline">Docs</a></li>
-          <li><a href="#pricing" className="nav-btn-primary">Descargar</a></li>
+          <li><a href="/#demo">Demo</a></li>
+          <li><a href="/#features">Características</a></li>
+          <li><a href="/#widgets">Widgets</a></li>
+          <li><a href="/#voxpub">Directorio</a></li>
+          <li><Link to="/docs" className="nav-btn-outline">Docs</Link></li>
+          <li><a href="/#pricing" className="nav-btn-primary">Descargar</a></li>
         </ul>
       </div>
     </motion.nav>

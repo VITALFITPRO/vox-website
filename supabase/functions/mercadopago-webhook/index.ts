@@ -1,3 +1,4 @@
+// @ts-nocheck
 // ============================================================
 // EDGE FUNCTION: mercadopago-webhook
 // Recibe notificaciones de Mercado Pago cuando se aprueba un pago

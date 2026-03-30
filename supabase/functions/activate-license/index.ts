@@ -1,3 +1,4 @@
+// @ts-nocheck
 // ============================================================
 // EDGE FUNCTION: activate-license
 // Activa una licencia vinculándola al hardware_id del equipo
