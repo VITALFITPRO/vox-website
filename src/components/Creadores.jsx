@@ -1,16 +1,64 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import './Creadores.css';
 
 export default function Creadores() {
-  const [ingresos, setIngresos] = useState(125.50); // Mínimo S/20 para cobrar
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  // States Auth
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLogin, setIsLogin] = useState(true);
+  const [authMsg, setAuthMsg] = useState('');
+
+  // States Dashboard
+  const [ingresos, setIngresos] = useState(125.50);
   const [pagosRecibidos, setPagosRecibidos] = useState([
     { id: 1, monto: 50.00, estado: 'pagado', fecha: '2026-02-15' },
     { id: 2, monto: 75.50, estado: 'pagado', fecha: '2026-03-10' }
   ]);
   const [solicitando, setSolicitando] = useState(false);
 
-  // Registro falso/placeholder
-  const [isRegistrado, setIsRegistrado] = useState(true);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setAuthMsg('Cargando...');
+    if (isLogin) {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) setAuthMsg(error.message);
+      else setAuthMsg('');
+    } else {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) setAuthMsg(error.message);
+      else setAuthMsg('Revisa tu correo para verificar tu cuenta.');
+    }
+  };
+
+  const handleGithubOAuth = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+    });
+    if (error) setAuthMsg(error.message);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
   const solicitarPago = () => {
     if (ingresos >= 20) {
@@ -26,21 +74,66 @@ export default function Creadores() {
     }
   };
 
-  if (!isRegistrado) {
+  if (loading) {
+    return <div className="creadores-container"><h2>Cargando...</h2></div>;
+  }
+
+  if (!session) {
     return (
-      <div className="creadores-container">
-        <h1>Registro de Developer</h1>
-        <p>Inscríbete para subir librerías al VoxPub y ganar dinero (50% Revenue Share).</p>
-        <button className="primary" onClick={() => setIsRegistrado(true)}>Registrar mi cuenta</button>
+      <div className="creadores-container" style={{maxWidth: '500px', margin: '0 auto', textAlign: 'center'}}>
+        <h1>VoxPub Creadores</h1>
+        <p>Inicia sesión para subir librerías y ganar dinero.</p>
+        
+        <form onSubmit={handleAuth} style={{display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '30px'}}>
+          <input 
+            type="email" 
+            placeholder="Tu email" 
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            style={{padding: '12px', borderRadius: '8px', border: '1px solid #ccc'}}
+          />
+          <input 
+            type="password" 
+            placeholder="Tu contraseña" 
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            style={{padding: '12px', borderRadius: '8px', border: '1px solid #ccc'}}
+          />
+          <button className="primary" type="submit">
+            {isLogin ? 'Iniciar Sesión' : 'Registrarse'}
+          </button>
+        </form>
+
+        <p style={{margin: '15px 0'}}>{authMsg}</p>
+
+        <button 
+          onClick={() => setIsLogin(!isLogin)} 
+          style={{background: 'none', border: 'none', color: '#0070f3', cursor: 'pointer', textDecoration: 'underline'}}
+        >
+          {isLogin ? 'O crea una cuenta nueva' : 'Ya tengo una cuenta'}
+        </button>
+
+        <div style={{margin: '30px 0'}}>o</div>
+
+        <button onClick={handleGithubOAuth} style={{padding: '12px', background: '#24292e', color: 'white', border: 'none', borderRadius: '8px', width: '100%', cursor: 'pointer'}}>
+          Continuar con GitHub
+        </button>
       </div>
     );
   }
 
   return (
     <div className="creadores-container">
-      <header className="creadores-header">
-        <h1>Dashboard Creadores</h1>
-        <p>Monetiza tus librerías de VoxPub (50% AdSense y regalías)</p>
+      <header className="creadores-header" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+        <div>
+          <h1>Dashboard Creadores</h1>
+          <p>Bienvenido, {session.user.email}</p>
+        </div>
+        <button onClick={handleLogout} style={{padding: '8px 16px', borderRadius: '8px', border: '1px solid #ccc', background: 'white', cursor: 'pointer'}}>
+          Cerrar sesión
+        </button>
       </header>
 
       <div className="dashboard-grid">
@@ -69,16 +162,6 @@ export default function Creadores() {
           >
             {solicitando ? "Procesando..." : "Solicitar Pago (> S/.20)"}
           </button>
-        </div>
-
-        <div className="dashboard-card full-width">
-          <h3>Gráfica de Ingresos</h3>
-          {/* Gráfico placeholder */}
-          <div className="chart-placeholder">
-            [================= Chart Area =================]
-            <br />
-            (Enero: S/40 | Febrero: S/50 | Marzo: S/75)
-          </div>
         </div>
 
         <div className="dashboard-card full-width">
