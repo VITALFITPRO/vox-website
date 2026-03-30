@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /descargar/*
+Disallow: /compra-exitosa
+Disallow: /compra-pendiente
+
+Sitemap: https://voxlang.dev/sitemap.xml

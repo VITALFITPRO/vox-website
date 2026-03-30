@@ -15,6 +15,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { checkRateLimit } from '../_shared/rate_limiter.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,6 +40,15 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // --- RATE LIMITING ---
+    const rateStatus = await checkRateLimit(req, supabase, 'activate-license');
+    if (!rateStatus.allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Demasiadas activaciones seguidas. Bloqueo Anti-DDoS.', code: 'RATE_LIMIT_EXCEEDED' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // 1. Buscar la licencia
     const { data: license, error: licenseError } = await supabase

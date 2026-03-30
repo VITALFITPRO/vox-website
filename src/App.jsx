@@ -17,8 +17,16 @@ import DocsInstall from './components/docs/DocsInstall';
 import DocsCore from './components/docs/DocsCore';
 import DocsPrompts from './components/docs/DocsPrompts';
 import DocsMonetization from './components/docs/DocsMonetization';
+import Creadores from './components/Creadores';
+import Estado from './components/Estado';
+import useTracker from './hooks/useTracker';
 import './App.css';
 import './components/Chatbot.css';
+
+function AnalyticsTracker() {
+  useTracker();
+  return null;
+}
 
 function LandingPage() {
   return (
@@ -42,11 +50,14 @@ function LandingPage() {
 function App() {
   return (
     <BrowserRouter>
+      <AnalyticsTracker />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/descargar/:token" element={<DownloadPortal />} />
         <Route path="/compra-exitosa" element={<PurchaseSuccess />} />
         <Route path="/compra-pendiente" element={<PurchasePending />} />
+        <Route path="/creadores" element={<Creadores />} />
+        <Route path="/estado" element={<Estado />} />
         
         {/* Documentación */}
         <Route path="/docs" element={<DocsLayout />}>

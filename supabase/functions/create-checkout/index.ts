@@ -16,6 +16,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { checkRateLimit } from '../_shared/rate_limiter.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -41,6 +42,17 @@ serve(async (req) => {
     const MP_ACCESS_TOKEN = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN');
     const SITE_URL = Deno.env.get('SITE_URL') || 'https://voxlang.com';
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // --- RATE LIMITING ---
+    const rateStatus = await checkRateLimit(req, supabase, 'create-checkout');
+    if (!rateStatus.allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Demasiadas peticiones de compra continuas. Bloqueo Anti-DDoS.', code: 'RATE_LIMIT_EXCEEDED' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Crear preferencia de pago en Mercado Pago
     const preference = {
