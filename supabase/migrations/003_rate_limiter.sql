@@ -1,41 +1,37 @@
--- ==============================================================================
--- VOXPUB - SEGURIDAD RATE LIMITER ANTI-DDoS (100 req / 15 min)
--- ==============================================================================
-
--- 1. Tabla de Logs de Rate Limiting
+-- Migración para Rate Limiter Anti-DDoS
 CREATE TABLE IF NOT EXISTS public.rate_limit_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    ip INET NOT NULL,
+    ip TEXT NOT NULL,
     endpoint TEXT NOT NULL,
     request_count INT DEFAULT 1,
-    window_start TIMESTAMPTZ DEFAULT NOW(),
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    window_start TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (ip, endpoint, window_start)
 );
 
--- 2. Índice Compuesto para búsquedas ultra-rápidas por IP, Endpoint y Tiempo
-CREATE INDEX IF NOT EXISTS idx_rate_limit_perf 
-ON public.rate_limit_logs (ip, endpoint, window_start);
+-- Indice para limpieza y consultas rápidas
+CREATE INDEX IF NOT EXISTS idx_rate_limit_window ON public.rate_limit_logs(window_start);
 
--- ==============================================================================
--- REGLAS RLS (Row Level Security)
--- ==============================================================================
-
-ALTER TABLE public.rate_limit_logs ENABLE ROW LEVEL SECURITY;
-
--- Esta tabla es exclusivamante de sistema. El público (anon / authenticated) no tiene 
--- ningún permiso de SELECT, INSERT, UPDATE, o DELETE. 
--- Solo las Edge Functions (con service_role_key) pueden interactuar con ella.
-
--- ==============================================================================
--- PROCESO DE LIMPIEZA AUTOMÁTICA (Cron / Trigger Cleanup)
--- ==============================================================================
--- Para que la tabla no crezca indefinidamente, podríamos crear una RPC de limpieza
--- para que elimine los logs que tienen más de 1 hora de antigüedad.
-
-CREATE OR REPLACE FUNCTION clean_expired_rate_limits()
-RETURNS void AS $$
+-- Función RPC para incrementar contador y validar (Retorna TRUE si está dentro de límite)
+CREATE OR REPLACE FUNCTION check_rate_limit(client_ip TEXT, api_endpoint TEXT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    current_window TIMESTAMP WITH TIME ZONE;
+    current_count INT;
 BEGIN
-    DELETE FROM public.rate_limit_logs
-    WHERE window_start < NOW() - INTERVAL '1 hour';
+    current_window := date_trunc('minute', CURRENT_TIMESTAMP) - (cast(extract(minute from CURRENT_TIMESTAMP) as int) % 15) * interval '1 minute';
+    
+    INSERT INTO public.rate_limit_logs (ip, endpoint, request_count, window_start)
+    VALUES (client_ip, api_endpoint, 1, current_window)
+    ON CONFLICT (ip, endpoint, window_start)
+    DO UPDATE SET request_count = public.rate_limit_logs.request_count + 1
+    RETURNING request_count INTO current_count;
+    
+    IF current_count > 100 THEN
+        RETURN FALSE;
+    END IF;
+    
+    RETURN TRUE;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;

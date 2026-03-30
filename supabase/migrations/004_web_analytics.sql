@@ -1,27 +1,19 @@
--- ==============================================================================
--- VOXPUB - ANALÍTICAS WEB (SIN COOKIES Y PRIVADO)
--- ==============================================================================
-
+-- Migración para Web Analytics
 CREATE TABLE IF NOT EXISTS public.web_analytics (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    session_id UUID NOT NULL,
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     ruta TEXT NOT NULL,
+    fecha TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     user_agent TEXT,
-    pais_origen TEXT DEFAULT 'Desconocido',
-    dispositivo TEXT DEFAULT 'Desktop',
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    session_id UUID NOT NULL,
+    pais TEXT,
+    dispositivo TEXT
 );
 
--- ==============================================================================
--- REGLAS RLS
--- ==============================================================================
+-- Indice para reportes rápidos por ruta o fecha
+CREATE INDEX IF NOT EXISTS idx_web_analytics_fecha ON public.web_analytics(fecha);
+CREATE INDEX IF NOT EXISTS idx_web_analytics_ruta ON public.web_analytics(ruta);
 
+-- Opcional: Permitir inserciones a roles anónimos (si RLS está habilitado)
 ALTER TABLE public.web_analytics ENABLE ROW LEVEL SECURITY;
-
--- Permitir INSERT a cualquier persona (anon o auth) para que la metadata se guarde.
-CREATE POLICY "Permitir insertar analiticas" ON public.web_analytics 
-    FOR INSERT TO public WITH CHECK (true);
-
--- Solo los Admins/Dueños pueden ver
-CREATE POLICY "Solo admins ven analiticas" ON public.web_analytics 
-    FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Allow anonymous inserts" ON public.web_analytics FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Allow read for auth users" ON public.web_analytics FOR SELECT TO authenticated USING (true);

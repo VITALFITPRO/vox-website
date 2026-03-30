@@ -1,165 +1,112 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import Navbar from './Navbar';
-import Footer from './Footer';
 import './Creadores.css';
 
 export default function Creadores() {
-  const [isAuth, setIsAuth] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [ingresos, setIngresos] = useState(125.50); // Mínimo S/20 para cobrar
+  const [pagosRecibidos, setPagosRecibidos] = useState([
+    { id: 1, monto: 50.00, estado: 'pagado', fecha: '2026-02-15' },
+    { id: 2, monto: 75.50, estado: 'pagado', fecha: '2026-03-10' }
+  ]);
+  const [solicitando, setSolicitando] = useState(false);
 
-  // Mocking data para visualización estética de la arquitectura
-  const analyticsData = [
-    { mes: 'Oct', vistas: 120, ingresos: 12 },
-    { mes: 'Nov', vistas: 450, ingresos: 45 },
-    { mes: 'Dic', vistas: 890, ingresos: 89 },
-    { mes: 'Ene', vistas: 1200, ingresos: 120 },
-    { mes: 'Feb', vistas: 1800, ingresos: 180 },
-    { mes: 'Mar', vistas: 2400, ingresos: 240 },
-  ];
+  // Registro falso/placeholder
+  const [isRegistrado, setIsRegistrado] = useState(true);
 
-  const gananciasAcumuladas = 240; // En PEN o USD
-  const metaMinima = 20;
+  const solicitarPago = () => {
+    if (ingresos >= 20) {
+      setSolicitando(true);
+      setTimeout(() => {
+        alert("Pago de S/ " + ingresos + " solicitado a tu cuenta de Mercado Pago.");
+        setPagosRecibidos([{ id: Date.now(), monto: ingresos, estado: 'pendiente', fecha: new Date().toISOString().split('T')[0] }, ...pagosRecibidos]);
+        setIngresos(0);
+        setSolicitando(false);
+      }, 1500);
+    } else {
+      alert("El monto mínimo para retirar es de S/. 20.00");
+    }
+  };
 
-  useEffect(() => {
-    // Simula comprobación de sesión en Supabase
-    setTimeout(() => {
-      setIsAuth(true); // Cambiar a true para mostrar la Dashboard
-      setLoading(false);
-    }, 800);
-  }, []);
-
-  if (loading) {
+  if (!isRegistrado) {
     return (
-      <div className="creadores-page" style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: 'var(--bg)', color: '#fff'}}>
-        <div className="loader"></div>
+      <div className="creadores-container">
+        <h1>Registro de Developer</h1>
+        <p>Inscríbete para subir librerías al VoxPub y ganar dinero (50% Revenue Share).</p>
+        <button className="primary" onClick={() => setIsRegistrado(true)}>Registrar mi cuenta</button>
       </div>
     );
   }
 
-  // --- Formulario de Registro ---
-  if (!isAuth) {
-    return (
-      <div className="creadores-page">
-        <Navbar />
-        <main className="creadores-container">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="creadores-login"
-          >
-            <h1>Portal de Creadores Vox</h1>
-            <p>Monetiza tus librerías de programación Open Source.</p>
-            
-            <form className="auth-form" onSubmit={(e) => { e.preventDefault(); setIsAuth(true); }}>
-              <input type="email" placeholder="Tu Correo de Mercado Pago" required />
-              <input type="password" placeholder="Contraseña segura" required />
-              <button type="submit" className="btn-primary">Registrarse / Entrar</button>
-            </form>
-          </motion.div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  // --- Dashboard Integral ---
   return (
-    <div className="creadores-page dashboard-active">
-      <Navbar />
-      <main className="creadores-dashboard">
-        <header className="dashboard-header">
-          <div>
-            <h1>Mi Panel de Creador</h1>
-            <p>Tus ganancias provienen del 50% de ingresos AdSense de tus librerías en VoxPub.</p>
+    <div className="creadores-container">
+      <header className="creadores-header">
+        <h1>Dashboard Creadores</h1>
+        <p>Monetiza tus librerías de VoxPub (50% AdSense y regalías)</p>
+      </header>
+
+      <div className="dashboard-grid">
+        <div className="dashboard-card">
+          <h3>Mis Librerías Publicadas</h3>
+          <ul>
+            <li>vox:charts - 1.2K descargas</li>
+            <li>vox:auth_google - 500 descargas</li>
+            <li>vox:animations - 3.4K descargas</li>
+          </ul>
+        </div>
+        
+        <div className="dashboard-card stat-card">
+          <h3>Total Visitas este Mes</h3>
+          <div className="stat-number">12,450</div>
+          <p className="stat-trend positive">+15% desde el mes pasado</p>
+        </div>
+
+        <div className="dashboard-card">
+          <h3>Balance Acumulado</h3>
+          <div className="stat-number balance">S/. {ingresos.toFixed(2)}</div>
+          <button 
+            className="withdraw-btn" 
+            onClick={solicitarPago} 
+            disabled={ingresos < 20 || solicitando}
+          >
+            {solicitando ? "Procesando..." : "Solicitar Pago (> S/.20)"}
+          </button>
+        </div>
+
+        <div className="dashboard-card full-width">
+          <h3>Gráfica de Ingresos</h3>
+          {/* Gráfico placeholder */}
+          <div className="chart-placeholder">
+            [================= Chart Area =================]
+            <br />
+            (Enero: S/40 | Febrero: S/50 | Marzo: S/75)
           </div>
-          <button className="btn-outline" onClick={() => setIsAuth(false)}>Cerrar Sesión</button>
-        </header>
-
-        <div className="dashboard-metrics">
-          <motion.div className="metric-card" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1 }}>
-            <h3>Librerías Publicadas</h3>
-            <span className="metric-value">3</span>
-            <span className="metric-badge active">Activas</span>
-          </motion.div>
-          
-          <motion.div className="metric-card" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2 }}>
-            <h3>Visitas este Mes</h3>
-            <span className="metric-value">2,400</span>
-            <span className="metric-trend positive">↑ +33%</span>
-          </motion.div>
-
-          <motion.div className="metric-card highlight" initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3 }}>
-            <h3>Saldo Acumulado</h3>
-            <span className="metric-value">S/. {gananciasAcumuladas}</span>
-            <div className="payout-action">
-              <button 
-                className="btn-payout" 
-                disabled={gananciasAcumuladas < metaMinima}
-              >
-                {gananciasAcumuladas >= metaMinima ? 'Retirar a Mercado Pago' : `Faltan S/. ${metaMinima - gananciasAcumuladas} para retirar`}
-              </button>
-            </div>
-          </motion.div>
         </div>
 
-        <div className="dashboard-grid">
-          {/* Gráfica de Ingresos Animada */}
-          <motion.div className="chart-container box-glass" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}>
-            <h2>Rendimiento de AdSense (6 Meses)</h2>
-            <div className="mini-chart">
-              {analyticsData.map((d, index) => {
-                const heightPercent = (d.ingresos / 240) * 100;
-                return (
-                  <div key={index} className="chart-bar-group">
-                    <div className="chart-bar-bg">
-                      <motion.div 
-                        className="chart-bar-fill" 
-                        initial={{ height: 0 }} 
-                        animate={{ height: `${heightPercent}%` }}
-                        transition={{ duration: 1, delay: 0.5 + (index * 0.1) }}
-                      ></motion.div>
-                    </div>
-                    <span className="chart-label">{d.mes}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </motion.div>
-
-          {/* Historial de Pagos */}
-          <motion.div className="history-container box-glass" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}>
-            <h2>Historial de Pagos</h2>
-            <table className="history-table">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Monto</th>
-                  <th>Estado</th>
+        <div className="dashboard-card full-width">
+          <h3>Historial de Pagos</h3>
+          <table className="payments-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Monto (PEN)</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pagosRecibidos.map(pago => (
+                <tr key={pago.id}>
+                  <td>{pago.fecha}</td>
+                  <td>S/. {pago.monto.toFixed(2)}</td>
+                  <td>
+                    <span className={`status-badge ${pago.estado}`}>
+                      {pago.estado.toUpperCase()}
+                    </span>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>28 Feb, 2026</td>
-                  <td>S/. 180.00</td>
-                  <td><span className="status-badge paid">Pagado</span></td>
-                </tr>
-                <tr>
-                  <td>31 Ene, 2026</td>
-                  <td>S/. 120.00</td>
-                  <td><span className="status-badge paid">Pagado</span></td>
-                </tr>
-                <tr>
-                  <td>30 Dic, 2025</td>
-                  <td>S/. 89.00</td>
-                  <td><span className="status-badge paid">Pagado</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </motion.div>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </main>
-      <Footer />
+      </div>
     </div>
   );
 }
