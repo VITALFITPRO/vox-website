@@ -28,6 +28,15 @@ export default function Footer() {
         <p>Hecho para la comunidad</p>
         <p className="footer-copy">© {new Date().getFullYear()} Vox. Todos los derechos reservados.</p>
       </div>
+
+      <p className="legal-disclaimer" style={{fontSize:'12px', color:'#9ca3af', textAlign:'center', marginTop:'16px'}}>
+        Vox es un lenguaje independiente que
+        transpila a Dart/Flutter. Flutter y su logo
+        son marcas registradas de Google LLC.
+        Vox Lang no está afiliado, patrocinado
+        ni respaldado por Google LLC.
+        © 2026 Vox Lang — voxlang.dev
+      </p>
     </footer>
   );
 }
