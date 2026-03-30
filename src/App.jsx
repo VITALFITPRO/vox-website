@@ -19,7 +19,7 @@ import DocsPrompts from './components/docs/DocsPrompts';
 import DocsMonetization from './components/docs/DocsMonetization';
 import Creadores from './components/Creadores';
 import Estado from './components/Estado';
-import useTracker from './hooks/useTracker';
+import { useTracker } from './hooks/useTracker';
 import './App.css';
 import './components/Chatbot.css';
 
