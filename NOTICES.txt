@@ -1,53 +1,10 @@
-═══════════════════════════════════════════════
 VOX WEBSITE — THIRD PARTY NOTICES
 Copyright (c) 2026 Vox Lang (voxlang.dev)
-═══════════════════════════════════════════════
 
-───────────────────────────────────────────────
-1. REACT
-───────────────────────────────────────────────
-Copyright (c) Meta Platforms Inc.
-Licencia: MIT License
-github.com/facebook/react/blob/main/LICENSE
+React - Copyright Meta - MIT
+Vite - Copyright Evan You - MIT
+Supabase - Apache 2.0
+Flutter/Dart - Copyright Google LLC - BSD 3-Clause
 
-───────────────────────────────────────────────
-2. VITE
-───────────────────────────────────────────────
-Copyright (c) Evan You
-Licencia: MIT License
-github.com/vitejs/vite/blob/main/LICENSE
-
-───────────────────────────────────────────────
-3. FRAMER MOTION
-───────────────────────────────────────────────
-Copyright (c) Framer BV
-Licencia: MIT License
-
-───────────────────────────────────────────────
-4. SUPABASE
-───────────────────────────────────────────────
-Copyright (c) Supabase Inc.
-Licencia: Apache License 2.0
-github.com/supabase/supabase/blob/master/LICENSE
-
-───────────────────────────────────────────────
-5. FLUTTER Y DART (referenciados)
-───────────────────────────────────────────────
-Copyright 2014 The Flutter Authors /
-Copyright 2012 The Dart Authors
-Licencia: BSD 3-Clause
-Google LLC — No afiliación con Vox Lang
-
-───────────────────────────────────────────────
-DECLARACIÓN DE NO AFILIACIÓN
-───────────────────────────────────────────────
-Vox Lang no está afiliado, patrocinado ni
-respaldado por Google LLC, Microsoft Corp,
-Meta Platforms Inc. ni ningún otro tercero
-mencionado en este documento.
-
-Todas las marcas mencionadas pertenecen a
-sus respectivos propietarios.
-
+No afiliado a Google, Microsoft ni Meta.
 Contacto: contacto@voxlang.dev
-═══════════════════════════════════════════════
