@@ -1,0 +1,52 @@
+
+C:\Users\antrc\Desktop\vox-website\src\components\Chatbot.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\antrc\Desktop\vox-website\src\components\CodeDemo.jsx
+  1:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\antrc\Desktop\vox-website\src\components\Directorio.jsx
+  124:16  error  '_' is defined but never used  no-unused-vars
+
+C:\Users\antrc\Desktop\vox-website\src\components\DownloadPortal.jsx
+  3:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\antrc\Desktop\vox-website\src\components\Estado.jsx
+  58:16  error  '_' is defined but never used  no-unused-vars
+
+C:\Users\antrc\Desktop\vox-website\src\components\Features.jsx
+  1:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\antrc\Desktop\vox-website\src\components\Hero.jsx
+  1:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\antrc\Desktop\vox-website\src\components\MultiLanguage.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\antrc\Desktop\vox-website\src\components\Navbar.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\antrc\Desktop\vox-website\src\components\Pricing.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\antrc\Desktop\vox-website\src\components\PurchasePending.jsx
+  1:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\antrc\Desktop\vox-website\src\components\PurchaseSuccess.jsx
+  1:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\antrc\Desktop\vox-website\src\components\VoxPub.jsx
+  1:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\antrc\Desktop\vox-website\src\components\Widgets.jsx
+  1:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\antrc\Desktop\vox-website\src\components\docs\DocsCore.jsx
+  81:33  error  Unnecessary escape character: \$  no-useless-escape
+
+C:\Users\antrc\Desktop\vox-website\src\components\docs\DocsInstall.jsx
+  58:32  error  Unnecessary escape character: \$  no-useless-escape
+  64:44  error  Unnecessary escape character: \$  no-useless-escape
+
+Ô£û 17 problems (17 errors, 0 warnings)
+

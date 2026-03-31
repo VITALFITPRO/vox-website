@@ -55,7 +55,7 @@ export default function Estado() {
         } else {
           setServicios(prev => prev.map((s, i) => i < 2 ? { ...s, estado: 'error' } : s));
         }
-      } catch (_) {
+      } catch (e) { // eslint-disable-line no-unused-vars
         setServicios(prev => prev.map((s, i) => i < 2 ? { ...s, estado: 'error', latencia: null } : s));
       }
       setUltimaActualizacion(new Date().toLocaleString('es-PE'));

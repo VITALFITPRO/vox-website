@@ -78,7 +78,7 @@ funcion guardar_cache() asincrona {
     db.guardar_texto("mi_token", "Bearer A2C...");
 
     variable token = db.leer_texto("mi_token");
-    imprimir("Token recuperado: \$token");
+    imprimir("Token recuperado: ${'$'}token");
 }`}
         </SyntaxHighlighter>
       </div>

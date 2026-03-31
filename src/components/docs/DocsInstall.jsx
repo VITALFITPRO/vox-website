@@ -55,13 +55,13 @@ pantalla Principal {
 
     funcion incrementar() {
         clicks = clicks + 1;
-        imprimir("Click número \$clicks");
+        imprimir("Click número ${'$'}clicks");
     }
 
     diseño {
         centro {
             columna(alineacion: "centro") {
-                Texto("Has tocado el botón \$clicks veces")
+                Texto("Has tocado el botón ${'$'}clicks veces")
                 Boton(titulo: "Agregar +1", al_tocar: incrementar)
             }
         }

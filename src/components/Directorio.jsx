@@ -121,7 +121,7 @@ export default function Directorio() {
           .select('*')
           .order('descargas', { ascending: false });
         if (!error && data && data.length > 0) setLibrerias(data);
-      } catch (_) { /* usa datos demo si falla */ }
+      } catch (e) { /* usa datos demo si falla: ${e} */ } // eslint-disable-line no-unused-vars
       setCargando(false);
     };
     fetchLibrerias();
