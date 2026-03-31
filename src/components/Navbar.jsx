@@ -31,7 +31,7 @@ export default function Navbar() {
           <li><a href="/#demo">Demo</a></li>
           <li><a href="/#features">Características</a></li>
           <li><a href="/#widgets">Widgets</a></li>
-          <li><a href="/#voxpub">Directorio</a></li>
+          <li><Link to="/directorio">Directorio</Link></li>
           <li><Link to="/docs" className="nav-btn-outline">Docs</Link></li>
           <li><a href="/#pricing" className="nav-btn-primary">Descargar</a></li>
         </ul>

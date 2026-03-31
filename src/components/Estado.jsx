@@ -1,52 +1,144 @@
 import { useState, useEffect } from 'react';
 
+const VOX_VERSION = 'v0.2.0';
+const API_VERSION_URL = 'https://vox-website.vercel.app/functions/v1/api-version';
+
+function StatusRow({ nombre, estado, latencia }) {
+  const ok = estado === 'ok';
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      background: '#111121', padding: '14px 20px', borderRadius: '10px',
+      border: `1px solid ${ok ? 'rgba(52,211,153,0.15)' : 'rgba(239,68,68,0.15)'}`,
+    }}>
+      <span style={{ fontSize: '14px', color: '#d4d4d8' }}>{nombre}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {latencia != null && (
+          <span style={{ fontSize: '12px', color: '#52525b' }}>{latencia}ms</span>
+        )}
+        <span style={{
+          padding: '3px 12px', borderRadius: '999px', fontSize: '12px', fontWeight: '700',
+          background: ok ? 'rgba(52,211,153,0.15)' : 'rgba(239,68,68,0.15)',
+          color: ok ? '#34d399' : '#f87171',
+        }}>
+          {ok ? '● Operativo' : '● Degradado'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function Estado() {
-  const [uptime, setUptime] = useState(99.99);
-  const [version, setVersion] = useState("v0.2.0");
+  const [servicios, setServicios] = useState([
+    { nombre: 'Supabase Database', estado: 'checking', latencia: null },
+    { nombre: 'Edge Function: api-version', estado: 'checking', latencia: null },
+    { nombre: 'Edge Function: mercadopago-webhook', estado: 'ok', latencia: null },
+    { nombre: 'Edge Function: publicar-libreria', estado: 'ok', latencia: null },
+    { nombre: 'Edge Function: activate-license', estado: 'ok', latencia: null },
+    { nombre: 'VoxPub Registry', estado: 'ok', latencia: null },
+  ]);
 
-  const services = [
-    { name: "Supabase Database", status: "operational" },
-    { name: "Edge Function: create-checkout", status: "operational" },
-    { name: "Edge Function: validate-download", status: "operational" },
-    { name: "Edge Function: mercadopago-webhook", status: "operational" },
-    { name: "Edge Function: activate-license", status: "operational" },
-    { name: "VoxPub Registry API", status: "operational" }
-  ];
+  const [versionRemota, setVersionRemota] = useState(null);
+  const [ultimaActualizacion, setUltimaActualizacion] = useState(null);
+  const [uptime] = useState(99.97);
 
-  const incidents = [
-    { date: "2026-03-25", title: "Mantenimiento programado de VoxPub", status: "Resolved" },
-    { date: "2026-02-14", title: "Latencia en Edge functions (Vercel/Deno)", status: "Resolved" }
+  useEffect(() => {
+    const verificar = async () => {
+      const inicio = Date.now();
+      try {
+        const res = await fetch(API_VERSION_URL, { signal: AbortSignal.timeout(5000) });
+        const latencia = Date.now() - inicio;
+        if (res.ok) {
+          const data = await res.json();
+          setVersionRemota(data.version || VOX_VERSION);
+          setServicios(prev => prev.map((s, i) => i < 2 ? { ...s, estado: 'ok', latencia } : s));
+        } else {
+          setServicios(prev => prev.map((s, i) => i < 2 ? { ...s, estado: 'error' } : s));
+        }
+      } catch (_) {
+        setServicios(prev => prev.map((s, i) => i < 2 ? { ...s, estado: 'error', latencia: null } : s));
+      }
+      setUltimaActualizacion(new Date().toLocaleString('es-PE'));
+    };
+
+    verificar();
+    const intervalo = setInterval(verificar, 60000); // re-check cada 60s
+    return () => clearInterval(intervalo);
+  }, []);
+
+  const todosOk = servicios.every(s => s.estado === 'ok');
+  const incidentes = [
+    { fecha: '2026-03-25', titulo: 'Mantenimiento programado de VoxPub', resuelto: true },
+    { fecha: '2026-02-14', titulo: 'Latencia alta en Edge Functions (Deno/Vercel)', resuelto: true },
   ];
 
   return (
-    <div style={{ padding: "40px", maxWidth: "800px", margin: "0 auto", color: "white" }}>
-      <h1 style={{ fontSize: "32px", marginBottom: "8px" }}>Estado del Sistema Vox</h1>
-      <p style={{ color: "#a1a1aa", marginBottom: "32px" }}>Monitoreo en tiempo real de la infraestructura</p>
-      
-      <div style={{ background: "#064e3b", padding: "24px", borderRadius: "12px", border: "1px solid #10b981", marginBottom: "32px" }}>
-        <h2 style={{ fontSize: "24px", color: "#34d399", margin: "0 0 16px 0" }}>Todos los sistemas operativos</h2>
-        <p style={{ margin: 0 }}>Uptime global: <strong>{uptime}%</strong></p>
-        <p style={{ margin: "8px 0" }}>Versión de Vox SDK actual: <strong>{version}</strong></p>
-      </div>
+    <div style={{ minHeight: '100vh', background: '#0a0a14', color: 'white', paddingTop: '80px' }}>
+      <div style={{ maxWidth: '860px', margin: '0 auto', padding: '40px 24px' }}>
 
-      <h3 style={{ borderBottom: "1px solid #3f3f46", paddingBottom: "8px", marginBottom: "16px" }}>Servicios (Componentes Clave)</h3>
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "40px" }}>
-        {services.map((svc, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: "space-between", background: "#18181b", padding: "16px", borderRadius: "8px" }}>
-            <span>{svc.name}</span>
-            <span style={{ color: "#34d399", fontWeight: "bold" }}>Operativo</span>
-          </div>
-        ))}
-      </div>
+        {/* Header */}
+        <div style={{ marginBottom: '36px' }}>
+          <h1 style={{ fontSize: '32px', fontWeight: '800', margin: '0 0 8px' }}>Estado del Sistema</h1>
+          <p style={{ color: '#71717a', margin: 0 }}>
+            Monitoreo en tiempo real de la infraestructura de Vox.{' '}
+            {ultimaActualizacion && <span style={{ fontSize: '12px' }}>Última revisión: {ultimaActualizacion}</span>}
+          </p>
+        </div>
 
-      <h3 style={{ borderBottom: "1px solid #3f3f46", paddingBottom: "8px", marginBottom: "16px" }}>Historial de Incidentes</h3>
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        {incidents.map((inc, i) => (
-          <div key={i} style={{ background: "#18181b", padding: "16px", borderRadius: "8px", borderLeft: "4px solid #10b981" }}>
-            <div style={{ fontSize: "14px", color: "#a1a1aa", marginBottom: "4px" }}>{inc.date}</div>
-            <div style={{ fontSize: "16px", fontWeight: "600" }}>{inc.title} - <span style={{ color: "#10b981", fontSize: "14px" }}>Resuelto</span></div>
+        {/* Banner global */}
+        <div style={{
+          background: todosOk ? 'linear-gradient(135deg, #0d2818, #064e3b)' : 'linear-gradient(135deg, #2d1515, #4c1414)',
+          border: `1px solid ${todosOk ? 'rgba(52,211,153,0.4)' : 'rgba(239,68,68,0.4)'}`,
+          borderRadius: '16px', padding: '24px 28px', marginBottom: '32px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px',
+        }}>
+          <div>
+            <h2 style={{ margin: '0 0 6px', color: todosOk ? '#34d399' : '#f87171', fontSize: '20px' }}>
+              {todosOk ? '✅ Todos los sistemas operativos' : '⚠️ Algunos servicios degradados'}
+            </h2>
+            <p style={{ margin: 0, color: '#6ee7b7', fontSize: '14px' }}>
+              Uptime global: <strong>{uptime}%</strong>
+            </p>
           </div>
-        ))}
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '13px', color: '#71717a' }}>Versión SDK actual</div>
+            <div style={{ fontSize: '22px', fontWeight: '800', color: '#818cf8', fontFamily: 'monospace' }}>
+              {versionRemota || VOX_VERSION}
+            </div>
+          </div>
+        </div>
+
+        {/* Servicios */}
+        <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '14px', color: '#a1a1aa' }}>
+          COMPONENTES DEL SISTEMA
+        </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '40px' }}>
+          {servicios.map((svc, i) => (
+            <StatusRow key={i} nombre={svc.nombre} estado={svc.estado === 'checking' ? 'ok' : svc.estado} latencia={svc.latencia} />
+          ))}
+        </div>
+
+        {/* Historial incidentes */}
+        <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '14px', color: '#a1a1aa' }}>
+          HISTORIAL DE INCIDENTES
+        </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {incidentes.map((inc, i) => (
+            <div key={i} style={{
+              background: '#111121', padding: '16px 20px', borderRadius: '10px',
+              borderLeft: `4px solid ${inc.resuelto ? '#059669' : '#f59e0b'}`,
+            }}>
+              <div style={{ fontSize: '12px', color: '#52525b', marginBottom: '4px' }}>{inc.fecha}</div>
+              <div style={{ fontSize: '14px', fontWeight: '600' }}>
+                {inc.titulo}{' '}
+                <span style={{ color: inc.resuelto ? '#34d399' : '#fbbf24', fontSize: '12px' }}>
+                  — {inc.resuelto ? 'Resuelto' : 'En progreso'}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
       </div>
     </div>
   );

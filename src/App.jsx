@@ -19,6 +19,7 @@ import DocsPrompts from './components/docs/DocsPrompts';
 import DocsMonetization from './components/docs/DocsMonetization';
 import Creadores from './components/Creadores';
 import Estado from './components/Estado';
+import Directorio from './components/Directorio';
 import { useTracker } from './hooks/useTracker';
 import './App.css';
 import './components/Chatbot.css';
@@ -58,6 +59,7 @@ function App() {
         <Route path="/compra-pendiente" element={<PurchasePending />} />
         <Route path="/creadores" element={<Creadores />} />
         <Route path="/estado" element={<Estado />} />
+        <Route path="/directorio" element={<Directorio />} />
         
         {/* Documentación */}
         <Route path="/docs" element={<DocsLayout />}>
