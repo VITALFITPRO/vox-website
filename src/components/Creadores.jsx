@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, callEdgeFunction } from '../lib/supabase';
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-
-const INGRESOS_DEMO = [12, 28, 45, 38, 62, 80, 55, 90, 110, 95, 125, 140];
 
 function GraficaBarras({ datos, max }) {
   return (
@@ -13,14 +11,15 @@ function GraficaBarras({ datos, max }) {
           <div
             style={{
               width: '100%',
-              height: `${(val / max) * 100}%`,
+              height: `${max > 0 ? (val / max) * 100 : 0}%`,
               background: i === datos.length - 1
                 ? 'linear-gradient(180deg, #818cf8, #6366f1)'
                 : 'rgba(99,102,241,0.35)',
               borderRadius: '4px 4px 0 0',
               transition: 'height 0.5s ease',
+              minHeight: val > 0 ? '4px' : '0',
             }}
-            title={`S/. ${val}`}
+            title={`S/. ${val.toFixed(2)}`}
           />
           <span style={{ fontSize: '9px', color: '#52525b' }}>{MESES[i]}</span>
         </div>
@@ -33,11 +32,11 @@ function StatCard({ titulo, valor, subtitulo, color }) {
   return (
     <div style={{
       background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
-      border: `1px solid ${color || 'rgba(99,102,241,0.3)'}`,
-      borderRadius: '14px', padding: '20px', flex: 1,
+      border: `1px solid ${color ? color + '40' : 'rgba(99,102,241,0.3)'}`,
+      borderRadius: '14px', padding: '20px', flex: 1, minWidth: '180px',
     }}>
       <div style={{ fontSize: '13px', color: '#71717a', marginBottom: '8px' }}>{titulo}</div>
-      <div style={{ fontSize: '28px', fontWeight: '800', color: color ? color : '#f4f4f5' }}>{valor}</div>
+      <div style={{ fontSize: '28px', fontWeight: '800', color: color || '#f4f4f5' }}>{valor}</div>
       {subtitulo && <div style={{ fontSize: '12px', color: '#52525b', marginTop: '4px' }}>{subtitulo}</div>}
     </div>
   );
@@ -53,13 +52,14 @@ export default function Creadores() {
   const [isLogin, setIsLogin] = useState(true);
   const [authMsg, setAuthMsg] = useState('');
 
-  // Dashboard
-  const [ingresos, setIngresos] = useState(125.50);
-  const [pagosRecibidos, setPagosRecibidos] = useState([
-    { id: 1, monto: 50.00, estado: 'pagado', fecha: '2026-02-15' },
-    { id: 2, monto: 75.50, estado: 'pagado', fecha: '2026-03-10' },
-  ]);
+  // Dashboard - datos reales
+  const [libraries, setLibraries] = useState([]);
+  const [balance, setBalance] = useState(0);
+  const [viewsThisMonth, setViewsThisMonth] = useState(0);
+  const [payHistory, setPayHistory] = useState([]);
   const [solicitando, setSolicitando] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -71,6 +71,47 @@ export default function Creadores() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // Cargar datos reales cuando hay sesión
+  useEffect(() => {
+    if (!session) return;
+    loadDashboardData();
+  }, [session]);
+
+  const loadDashboardData = async () => {
+    if (!session) return;
+    setLoadingData(true);
+    const userEmail = session.user.email;
+
+    try {
+      // 1. Auto-registrar como developer si no existe
+      const regResult = await callEdgeFunction('creadores-api', {
+        action: 'register_dev',
+        email: userEmail,
+        nombre: session.user.user_metadata?.full_name || userEmail.split('@')[0],
+      });
+      setIsRegistered(true);
+
+      // 2. Cargar mis librerías
+      const libResult = await callEdgeFunction('creadores-api', {
+        action: 'my_libraries',
+        email: userEmail,
+      });
+      setLibraries(libResult.libraries || []);
+
+      // 3. Cargar balance y historial
+      const earningsResult = await callEdgeFunction('creadores-api', {
+        action: 'my_earnings',
+        email: userEmail,
+      });
+      setBalance(earningsResult.balance || 0);
+      setViewsThisMonth(earningsResult.views_this_month || 0);
+      setPayHistory(earningsResult.history || []);
+    } catch (err) {
+      console.error('Error cargando datos del dashboard:', err);
+    }
+    setLoadingData(false);
+  };
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -93,21 +134,28 @@ export default function Creadores() {
 
   const handleLogout = async () => { await supabase.auth.signOut(); };
 
-  const solicitarPago = () => {
-    if (ingresos >= 20) {
-      setSolicitando(true);
-      setTimeout(() => {
-        alert(`Pago de S/ ${ingresos.toFixed(2)} solicitado a tu cuenta de Mercado Pago.`);
-        setPagosRecibidos([
-          { id: Date.now(), monto: ingresos, estado: 'pendiente', fecha: new Date().toISOString().split('T')[0] },
-          ...pagosRecibidos,
-        ]);
-        setIngresos(0);
-        setSolicitando(false);
-      }, 1500);
-    } else {
+  const solicitarPago = async () => {
+    if (balance < 20) {
       alert('El monto mínimo para retirar es de S/. 20.00');
+      return;
     }
+    setSolicitando(true);
+    try {
+      const result = await callEdgeFunction('creadores-api', {
+        action: 'request_payout',
+        email: session.user.email,
+        monto: balance,
+      });
+      if (result.error) {
+        alert(result.error);
+      } else {
+        alert(result.message || 'Solicitud de pago creada');
+        loadDashboardData(); // Refrescar
+      }
+    } catch (err) {
+      alert('Error solicitando pago: ' + err.message);
+    }
+    setSolicitando(false);
   };
 
   if (loading) return (
@@ -170,7 +218,15 @@ export default function Creadores() {
   );
 
   // ─── DASHBOARD ───────────────────────────────────────────────────
-  const maxIngreso = Math.max(...INGRESOS_DEMO);
+  // Gráfica placeholder (se llenará con datos reales de payHistory)
+  const monthlyData = new Array(12).fill(0);
+  payHistory.forEach(p => {
+    if (p.estado === 'pagado' && p.created_at) {
+      const month = new Date(p.created_at).getMonth();
+      monthlyData[month] += Number(p.monto) || 0;
+    }
+  });
+  const maxIngreso = Math.max(...monthlyData, 1);
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a14', color: 'white', paddingTop: '80px' }}>
@@ -182,19 +238,31 @@ export default function Creadores() {
             <h1 style={{ fontSize: '28px', fontWeight: '800', margin: '0 0 4px' }}>Dashboard Creadores</h1>
             <p style={{ color: '#71717a', margin: 0, fontSize: '14px' }}>Hola, {session.user.email}</p>
           </div>
-          <button onClick={handleLogout} style={{
-            padding: '10px 20px', borderRadius: '10px', background: 'rgba(239,68,68,0.1)',
-            border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', cursor: 'pointer', fontSize: '13px',
-          }}>
-            Cerrar sesión
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button onClick={loadDashboardData} style={{
+              padding: '10px 20px', borderRadius: '10px', background: 'rgba(99,102,241,0.1)',
+              border: '1px solid rgba(99,102,241,0.3)', color: '#818cf8', cursor: 'pointer', fontSize: '13px',
+            }}>
+              🔄 Refrescar
+            </button>
+            <button onClick={handleLogout} style={{
+              padding: '10px 20px', borderRadius: '10px', background: 'rgba(239,68,68,0.1)',
+              border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', cursor: 'pointer', fontSize: '13px',
+            }}>
+              Cerrar sesión
+            </button>
+          </div>
         </div>
+
+        {loadingData && (
+          <div style={{ textAlign: 'center', padding: '20px', color: '#71717a' }}>Cargando datos...</div>
+        )}
 
         {/* Stats Row */}
         <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
-          <StatCard titulo="Visitas este mes" valor="12,450" subtitulo="+15% vs mes anterior" />
-          <StatCard titulo="Balance acumulado (50% AdSense)" valor={`S/. ${ingresos.toFixed(2)}`} color="#34d399" />
-          <StatCard titulo="Librerías publicadas" valor="3" subtitulo="activas en el directorio" />
+          <StatCard titulo="Visitas este mes" valor={viewsThisMonth.toLocaleString()} subtitulo="en tus librerías" />
+          <StatCard titulo="Balance acumulado (50% AdSense)" valor={`S/. ${balance.toFixed(2)}`} color="#34d399" />
+          <StatCard titulo="Librerías publicadas" valor={libraries.length} subtitulo="activas en el directorio" />
         </div>
 
         {/* Gráfica ingresos */}
@@ -203,10 +271,10 @@ export default function Creadores() {
           border: '1px solid rgba(99,102,241,0.3)', borderRadius: '16px', padding: '24px', marginBottom: '24px',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h3 style={{ margin: 0, fontWeight: '700' }}>📈 Ingresos por mes (S/.)</h3>
+            <h3 style={{ margin: 0, fontWeight: '700' }}>📈 Pagos recibidos por mes (S/.)</h3>
             <span style={{ fontSize: '12px', color: '#71717a' }}>Últimos 12 meses</span>
           </div>
-          <GraficaBarras datos={INGRESOS_DEMO} max={maxIngreso} />
+          <GraficaBarras datos={monthlyData} max={maxIngreso} />
         </div>
 
         {/* Mis librerías */}
@@ -215,19 +283,22 @@ export default function Creadores() {
           border: '1px solid rgba(99,102,241,0.3)', borderRadius: '16px', padding: '24px', marginBottom: '24px',
         }}>
           <h3 style={{ margin: '0 0 16px', fontWeight: '700' }}>📦 Mis Librerías Publicadas</h3>
-          {[
-            { nombre: 'vox:charts', descargas: 1240, version: '1.2.0' },
-            { nombre: 'vox:auth_google', descargas: 520, version: '2.0.1' },
-            { nombre: 'vox:animations', descargas: 3410, version: '1.0.5' },
-          ].map((lib, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-              <span style={{ fontFamily: 'monospace', color: '#818cf8' }}>{lib.nombre}</span>
-              <div style={{ display: 'flex', gap: '20px', fontSize: '13px', color: '#71717a' }}>
-                <span>v{lib.version}</span>
-                <span>⬇ {lib.descargas.toLocaleString()} descargas</span>
+          {libraries.length === 0 ? (
+            <p style={{ color: '#52525b', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>
+              Aún no has publicado librerías. Usa <code style={{ color: '#818cf8' }}>vox publicar</code> desde el CLI.
+            </p>
+          ) : (
+            libraries.map((lib, i) => (
+              <div key={lib.id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: i < libraries.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                <span style={{ fontFamily: 'monospace', color: '#818cf8' }}>{lib.nombre_paquete}</span>
+                <div style={{ display: 'flex', gap: '20px', fontSize: '13px', color: '#71717a' }}>
+                  <span>v{lib.version_actual}</span>
+                  <span>⬇ {(lib.downloads_count || 0).toLocaleString()} descargas</span>
+                  <span>👁 {(lib.views_this_month || 0).toLocaleString()} vistas/mes</span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         {/* Balance y retiro */}
@@ -238,16 +309,16 @@ export default function Creadores() {
         }}>
           <div>
             <div style={{ fontSize: '13px', color: '#6ee7b7', marginBottom: '4px' }}>Balance disponible para retiro</div>
-            <div style={{ fontSize: '36px', fontWeight: '800', color: '#34d399' }}>S/. {ingresos.toFixed(2)}</div>
+            <div style={{ fontSize: '36px', fontWeight: '800', color: '#34d399' }}>S/. {balance.toFixed(2)}</div>
             <div style={{ fontSize: '12px', color: '#6ee7b7', marginTop: '4px' }}>Mínimo para solicitar: S/. 20.00</div>
           </div>
           <button
             onClick={solicitarPago}
-            disabled={ingresos < 20 || solicitando}
+            disabled={balance < 20 || solicitando}
             style={{
-              padding: '14px 28px', borderRadius: '12px', border: 'none', cursor: ingresos < 20 ? 'not-allowed' : 'pointer',
-              background: ingresos < 20 ? 'rgba(52,211,153,0.2)' : 'linear-gradient(135deg, #059669, #34d399)',
-              color: ingresos < 20 ? '#6ee7b7' : 'white', fontSize: '15px', fontWeight: '700', opacity: solicitando ? 0.7 : 1,
+              padding: '14px 28px', borderRadius: '12px', border: 'none', cursor: balance < 20 ? 'not-allowed' : 'pointer',
+              background: balance < 20 ? 'rgba(52,211,153,0.2)' : 'linear-gradient(135deg, #059669, #34d399)',
+              color: balance < 20 ? '#6ee7b7' : 'white', fontSize: '15px', fontWeight: '700', opacity: solicitando ? 0.7 : 1,
               transition: 'all 0.2s',
             }}
           >
@@ -258,32 +329,40 @@ export default function Creadores() {
         {/* Historial de pagos */}
         <div style={{ background: 'linear-gradient(135deg, #1a1a2e, #16213e)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '16px', padding: '24px' }}>
           <h3 style={{ margin: '0 0 16px', fontWeight: '700' }}>🏦 Historial de Pagos</h3>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-            <thead>
-              <tr>
-                {['Fecha', 'Monto', 'Estado'].map(h => (
-                  <th key={h} style={{ textAlign: 'left', padding: '8px 12px', color: '#71717a', fontWeight: '600', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {pagosRecibidos.map(pago => (
-                <tr key={pago.id}>
-                  <td style={{ padding: '12px', color: '#a1a1aa' }}>{pago.fecha}</td>
-                  <td style={{ padding: '12px', fontWeight: '700', color: '#f4f4f5' }}>S/. {pago.monto.toFixed(2)}</td>
-                  <td style={{ padding: '12px' }}>
-                    <span style={{
-                      padding: '3px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: '700',
-                      background: pago.estado === 'pagado' ? 'rgba(52,211,153,0.15)' : 'rgba(251,191,36,0.15)',
-                      color: pago.estado === 'pagado' ? '#34d399' : '#fbbf24',
-                    }}>
-                      {pago.estado.toUpperCase()}
-                    </span>
-                  </td>
+          {payHistory.length === 0 ? (
+            <p style={{ color: '#52525b', fontSize: '14px', textAlign: 'center', padding: '20px 0' }}>
+              Sin solicitudes de pago aún
+            </p>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+              <thead>
+                <tr>
+                  {['Fecha', 'Monto', 'Estado'].map(h => (
+                    <th key={h} style={{ textAlign: 'left', padding: '8px 12px', color: '#71717a', fontWeight: '600', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {payHistory.map(pago => (
+                  <tr key={pago.id}>
+                    <td style={{ padding: '12px', color: '#a1a1aa' }}>
+                      {pago.created_at ? new Date(pago.created_at).toLocaleDateString('es-PE') : '—'}
+                    </td>
+                    <td style={{ padding: '12px', fontWeight: '700', color: '#f4f4f5' }}>S/. {Number(pago.monto).toFixed(2)}</td>
+                    <td style={{ padding: '12px' }}>
+                      <span style={{
+                        padding: '3px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: '700',
+                        background: pago.estado === 'pagado' ? 'rgba(52,211,153,0.15)' : pago.estado === 'rechazado' ? 'rgba(248,113,113,0.15)' : 'rgba(251,191,36,0.15)',
+                        color: pago.estado === 'pagado' ? '#34d399' : pago.estado === 'rechazado' ? '#f87171' : '#fbbf24',
+                      }}>
+                        {pago.estado?.toUpperCase() || 'PENDIENTE'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
       </div>

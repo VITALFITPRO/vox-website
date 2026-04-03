@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { callEdgeFunction } from '../lib/supabase';
 
 const CATEGORIAS = ['Todas', 'UI', 'Base de datos', 'Audio/Video', 'Mapas', 'Auth', 'Utilidades'];
 
@@ -116,12 +116,11 @@ export default function Directorio() {
     const fetchLibrerias = async () => {
       setCargando(true);
       try {
-        const { data, error } = await supabase
-          .from('vox_libraries')
-          .select('*')
-          .order('descargas', { ascending: false });
-        if (!error && data && data.length > 0) setLibrerias(data);
-      } catch (e) { /* usa datos demo si falla: ${e} */ } // eslint-disable-line no-unused-vars
+        const result = await callEdgeFunction('buscar-libreria', { query: '', limit: 100 });
+        if (result?.libraries && result.libraries.length > 0) {
+          setLibrerias(result.libraries);
+        }
+      } catch (e) { /* usa datos demo si falla */ }
       setCargando(false);
     };
     fetchLibrerias();
