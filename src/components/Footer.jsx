@@ -31,7 +31,7 @@ export default function Footer() {
 
       <p className="legal-disclaimer" style={{fontSize:'12px', color:'#9ca3af', textAlign:'center', marginTop:'16px'}}>
         Vox es un lenguaje independiente que
-        transpila a Dart/Flutter. Flutter y su logo
+        transpila a Dart/Flutter. Dart, Flutter y sus logos
         son marcas registradas de Google LLC.
         Vox Lang no está afiliado, patrocinado
         ni respaldado por Google LLC.
